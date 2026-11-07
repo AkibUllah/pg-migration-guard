@@ -1,0 +1,97 @@
+[
+  {
+    "line": 2,
+    "sql": "SET lock_timeout = '2s'",
+    "status": "ok",
+    "reason": "",
+    "sqlstate": null,
+    "ms": 0.4917799960821867,
+    "locks": {},
+    "rewrites": [],
+    "scans": [],
+    "blocked_reads": [],
+    "blocked_writes": []
+  },
+  {
+    "line": 4,
+    "sql": "ALTER TABLE shipment ADD COLUMN public_id uuid",
+    "status": "ok",
+    "reason": "",
+    "sqlstate": null,
+    "ms": 1.243659993633628,
+    "locks": {
+      "shipment": "AccessExclusiveLock"
+    },
+    "rewrites": [],
+    "scans": [],
+    "blocked_reads": [
+      "shipment"
+    ],
+    "blocked_writes": [
+      "shipment"
+    ]
+  },
+  {
+    "line": 5,
+    "sql": "ALTER TABLE shipment ALTER COLUMN public_id SET DEFAULT gen_random_uuid()",
+    "status": "ok",
+    "reason": "",
+    "sqlstate": null,
+    "ms": 3.7747410242445767,
+    "locks": {
+      "shipment": "AccessExclusiveLock"
+    },
+    "rewrites": [],
+    "scans": [],
+    "blocked_reads": [
+      "shipment"
+    ],
+    "blocked_writes": [
+      "shipment"
+    ]
+  },
+  {
+    "line": 6,
+    "sql": "ALTER TABLE shipment ADD CONSTRAINT shipment_hub_fk\n    FOREIGN KEY (hub_id) REFERENCES hub (id) NOT VALID",
+    "status": "ok",
+    "reason": "",
+    "sqlstate": null,
+    "ms": 11.775658000260592,
+    "locks": {
+      "hub": "ShareRowExclusiveLock",
+      "hub_pkey": "AccessShareLock",
+      "shipment": "AccessExclusiveLock"
+    },
+    "rewrites": [],
+    "scans": [],
+    "blocked_reads": [
+      "shipment"
+    ],
+    "blocked_writes": [
+      "hub",
+      "shipment"
+    ]
+  },
+  {
+    "line": 8,
+    "sql": "ALTER TABLE shipment ADD CONSTRAINT shipment_tracking_code_nn\n    CHECK (tracking_code IS NOT NULL) NOT VALID",
+    "status": "ok",
+    "reason": "",
+    "sqlstate": null,
+    "ms": 0.9336909861303866,
+    "locks": {
+      "hub": "ShareRowExclusiveLock",
+      "hub_pkey": "AccessShareLock",
+      "shipment": "AccessExclusiveLock"
+    },
+    "rewrites": [],
+    "scans": [],
+    "blocked_reads": [
+      "shipment"
+    ],
+    "blocked_writes": [
+      "hub",
+      "shipment"
+    ]
+  }
+]

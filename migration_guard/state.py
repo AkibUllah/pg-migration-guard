@@ -71,6 +71,15 @@ def _not_null_columns(expr: object) -> set[str]:
     return set()
 
 
+def foreign_key_parents(node: ast.Node) -> set[str]:
+    """A foreign key takes SHARE ROW EXCLUSIVE on the table it references, so that blocks too."""
+    return {
+        name_of(found.pktable)
+        for found in walk(node)
+        if isinstance(found, ast.Constraint) and found.contype == ConstrType.CONSTR_FOREIGN
+    }
+
+
 def blocking_tables(stmt: Statement) -> set[str]:
     """Tables this statement locks strongly enough to stop writers, and queue everyone behind."""
     node = stmt.node
@@ -78,7 +87,9 @@ def blocking_tables(stmt: Statement) -> set[str]:
     if cmds:
         if all(c.subtype in NOT_BLOCKING for c in cmds):
             return set()
-        return {name_of(node.relation)}
+        return {name_of(node.relation)} | foreign_key_parents(node)
+    if isinstance(node, ast.CreateStmt):
+        return foreign_key_parents(node)
     if isinstance(node, ast.DropStmt) and not node.concurrent:
         if node.removeType in (ObjectType.OBJECT_TABLE, ObjectType.OBJECT_INDEX):
             return {dotted(names) for names in node.objects}

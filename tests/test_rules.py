@@ -259,6 +259,17 @@ def test_one_table_twice_is_not_two_tables(codes):
     assert codes(sql) == []
 
 
+def test_foreign_key_locks_its_parent_table_too(codes):
+    sql = "BEGIN;\nALTER TABLE a ADD CONSTRAINT f FOREIGN KEY (x) REFERENCES b (id) NOT VALID;\n"
+    assert codes(sql + "COMMIT;") == ["PMG021"]
+
+
+def test_new_table_with_a_foreign_key_still_locks_the_parent():
+    found = check_text("CREATE TABLE n (id bigint PRIMARY KEY, p bigint REFERENCES parent (id));")
+    assert [f.code for f in found] == ["PMG019"]
+    assert "parent" in found[0].message
+
+
 def test_two_tables_outside_a_transaction_are_fine(codes):
     assert codes("ALTER TABLE a ADD COLUMN x int;\nALTER TABLE b ADD COLUMN x int;") == []
 

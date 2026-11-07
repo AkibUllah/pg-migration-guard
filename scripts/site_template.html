@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pg-migration-guard: what DDL really locks</title>
+<meta name="description" content="Locks, rewrites, scans and blocked traffic for PostgreSQL DDL, measured on real servers by pg-migration-guard.">
+<style>
+:root {
+  --bg: #fbfbfa; --fg: #1d1f21; --muted: #5f6368; --line: #e3e3e0; --card: #ffffff;
+  --accent: #2f6f9f; --head: #f4f4f2; --code: #f2f2ef;
+  --bad: #b3261e; --bad-bg: #fbeaea; --warn: #8a5a00; --warn-bg: #fdf3e4;
+  --good: #1e6b3a; --good-bg: #e9f5ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171a; --fg: #e6e6e3; --muted: #a0a4a8; --line: #2c3035; --card: #1c1f23;
+    --accent: #7fb3dc; --head: #1f2226; --code: #23272b;
+    --bad: #f2a6a0; --bad-bg: #3a1f1e; --warn: #e6c27a; --warn-bg: #2d2618;
+    --good: #8fd3a6; --good-bg: #1b2a20;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 1.7rem; margin: 0 0 4px; }
+h2 { font-size: 1.2rem; margin: 40px 0 8px; }
+p { max-width: 760px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.links a { margin-right: 16px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 16px; min-width: 130px; }
+.stat b { display: block; font-size: 1.4rem; }
+.table { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px;
+  border-bottom: 1px solid var(--line); }
+th { font-weight: 600; color: var(--muted); background: var(--head); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.mark { text-align: center; white-space: nowrap; }
+pre, code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+td code { word-break: break-word; }
+pre { background: var(--code); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
+.lock { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px;
+  white-space: nowrap; }
+.yes { color: var(--bad); font-weight: 600; }
+.no { color: var(--muted); }
+.sev { display: inline-block; padding: 0 7px; border-radius: 4px; font-size: 12.5px; }
+.error { background: var(--bad-bg); color: var(--bad); }
+.warning { background: var(--warn-bg); color: var(--warn); }
+.info, .safe { background: var(--good-bg); color: var(--good); }
+details { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 12px; margin: 6px 0; }
+details summary { cursor: pointer; }
+details p { margin: 8px 0; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.two > div { min-width: 0; }
+.two h3 { font-size: 1rem; margin: 12px 0 4px; }
+</style>
+</head>
+<body>
+<main>
+<h1>What PostgreSQL DDL really locks</h1>
+<p class="muted">Every row below was measured by <a href="@@repo@@">pg-migration-guard</a> on a live server, not copied from the documentation.</p>
+<p class="links"><a href="@@repo@@">Source on GitHub</a><a href="@@repo@@#quick-start">Quick start</a><a href="evidence/pg@@latest@@.json">Raw evidence (JSON)</a></p>
+
+<div class="stats">
+  <div class="stat"><b>@@rules@@</b>rules</div>
+  <div class="stat"><b>@@checked@@ / @@checked@@</b>claims hold</div>
+  <div class="stat"><b>@@servers@@</b>servers measured</div>
+  <div class="stat"><b>@@differences@@</b>differences between versions</div>
+</div>
+
+<p>Each statement ran on a 2,000-row table inside a transaction that was rolled back. After it ran, the tool read <code>pg_locks</code> for the lock held, compared filenodes for a rewrite, and read the sequential scan counter. A second connection with a 100 ms <code>lock_timeout</code> then tried a real read and a real write, so "blocks" means traffic was actually stopped.</p>
+
+<h2>Statements the linter flags</h2>
+<div class="table"><table>
+<thead><tr><th>Rule</th><th>Statement</th><th>Lock on the table</th><th>Rewrite</th><th>Scan</th><th>Blocks reads</th><th>Blocks writes</th></tr></thead>
+<tbody>
+@@flagged@@
+</tbody>
+</table></div>
+
+<h2>What the linter recommends instead</h2>
+<p>The fixes are measured the same way. <code>NOT VALID</code> followed by <code>VALIDATE</code> does the scan under a lock that lets traffic through, which is the point of the two-step pattern.</p>
+<p>A safe statement can still say "blocks" here. What matters is how long: with no rewrite and no scan, it only changes the catalog and holds its lock for milliseconds, as long as it gets the lock quickly. That is why the linter also asks for a <code>lock_timeout</code>.</p>
+<div class="table"><table>
+<thead><tr><th>Pattern</th><th>Statement</th><th>Lock on the table</th><th>Rewrite</th><th>Scan</th><th>Blocks reads</th><th>Blocks writes</th></tr></thead>
+<tbody>
+@@safe@@
+</tbody>
+</table></div>
+
+<h2>Statements that do not run at all</h2>
+<div class="table"><table>
+<thead><tr><th>Rule</th><th>Statement</th><th>SQLSTATE</th></tr></thead>
+<tbody>
+@@failing@@
+</tbody>
+</table></div>
+
+<h2>One migration, probed</h2>
+<p>The same change to a fictional courier's <code>shipment</code> table, written two ways, on PostgreSQL @@probe_version@@. Locks pile up in the single transaction on the left, and the final <code>UPDATE</code> runs with the table fully blocked. On the right each statement commits by itself.</p>
+<div class="two">
+<div><h3>Risky: <code>pgmg check</code></h3><pre>@@check_risky@@</pre></div>
+<div><h3>Risky: <code>pgmg probe</code></h3><pre>@@probe_risky@@</pre></div>
+</div>
+<div class="two">
+<div><h3>Safe: the fix</h3><pre>@@safe_sql@@</pre></div>
+<div><h3>Safe: <code>pgmg probe</code></h3><pre>@@probe_safe@@</pre></div>
+</div>
+
+<h2 id="rules">All rules</h2>
+@@catalog@@
+
+<p class="muted">pg-migration-guard @@version@@. MIT licence. Measured on PostgreSQL @@server_list@@.</p>
+</main>
+</body>
+</html>
