@@ -41,3 +41,5 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+# Nested conditions read better than long ones in rule logic.
+ignore = ["SIM102"]
