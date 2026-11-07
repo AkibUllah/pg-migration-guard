@@ -1,0 +1,27 @@
+# A throwaway server for `pgmg probe` and `pgmg evidence`. Port 8000 and 3000 stay free.
+services:
+  shadow:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pgmg}
+      POSTGRES_DB: pgmg_shadow
+    ports:
+      - "${SHADOW_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pgmg_shadow"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  pgmg:
+    build: .
+    profiles: [tools]
+    depends_on:
+      shadow:
+        condition: service_healthy
+    environment:
+      PGMG_DSN: postgresql://postgres:${POSTGRES_PASSWORD:-pgmg}@shadow:5432/pgmg_shadow
+    volumes:
+      - .:/work:ro

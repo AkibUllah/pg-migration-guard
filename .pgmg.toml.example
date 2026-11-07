@@ -1,0 +1,13 @@
+# Copy to .pgmg.toml. Flags on the command line win.
+target_version = 16
+
+# Flyway, Alembic and Django wrap each file in a transaction.
+assume_in_transaction = false
+
+# Lowest severity that fails the run: info, warning or error.
+fail_on = "error"
+
+disable = ["PMG053"]
+
+[severity]
+PMG019 = "error"

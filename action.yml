@@ -1,0 +1,50 @@
+name: pg-migration-guard
+description: Lint PostgreSQL migrations for locks, rewrites and rolling-deploy breakage.
+branding:
+  icon: shield
+  color: blue
+inputs:
+  path:
+    description: Directory or files to check, space separated.
+    default: migrations
+  base-ref:
+    description: Only check SQL files changed since this ref. Leave empty to check everything.
+    default: ""
+  fail-on:
+    description: Lowest severity that fails the job (info, warning, error, never).
+    default: error
+  target-version:
+    description: PostgreSQL major version. Leave empty to use .pgmg.toml.
+    default: ""
+  assume-in-transaction:
+    description: Set to true if your migration tool wraps each file in a transaction.
+    default: "false"
+  sarif-file:
+    description: Also write a SARIF report here, for upload to code scanning.
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install
+      shell: bash
+      run: python3 -m pip install --quiet "$GITHUB_ACTION_PATH"
+    - name: Check
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_BASE_REF: ${{ inputs.base-ref }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_TARGET_VERSION: ${{ inputs.target-version }}
+        INPUT_ASSUME: ${{ inputs.assume-in-transaction }}
+        INPUT_SARIF: ${{ inputs.sarif-file }}
+      run: |
+        read -r -a paths <<< "$INPUT_PATH"
+        args=()
+        if [ -n "$INPUT_BASE_REF" ]; then args+=(--changed-since "$INPUT_BASE_REF"); fi
+        if [ -n "$INPUT_TARGET_VERSION" ]; then args+=(--target-version "$INPUT_TARGET_VERSION"); fi
+        if [ "$INPUT_ASSUME" = "true" ]; then args+=(--assume-in-transaction); fi
+        if [ -n "$INPUT_SARIF" ]; then
+          pgmg check "${args[@]}" --format sarif --fail-on never "${paths[@]}" > "$INPUT_SARIF"
+        fi
+        pgmg check "${args[@]}" --format markdown --fail-on never "${paths[@]}" >> "$GITHUB_STEP_SUMMARY"
+        pgmg check "${args[@]}" --format github --fail-on "$INPUT_FAIL_ON" "${paths[@]}"
