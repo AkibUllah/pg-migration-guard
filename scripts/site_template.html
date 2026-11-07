@@ -43,7 +43,8 @@ th { font-weight: 600; color: var(--muted); background: var(--head); white-space
 tr:last-child td { border-bottom: 0; }
 td.mark { text-align: center; white-space: nowrap; }
 pre, code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
-td code { word-break: break-word; }
+td code { word-break: normal; overflow-wrap: anywhere; }
+tbody td:nth-child(2) { min-width: 240px; }
 pre { background: var(--code); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
 .lock { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px;
   white-space: nowrap; }
