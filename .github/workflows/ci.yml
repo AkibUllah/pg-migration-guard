@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest --cov=migration_guard --cov-report=term-missing
+
+  claims:
+    name: claims on PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ["14", "16", "17", "18"]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}-alpine
+        env:
+          POSTGRES_PASSWORD: pgmg
+          POSTGRES_DB: pgmg_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pgmg_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      PGMG_TEST_DSN: postgresql://postgres:pgmg@localhost:5432/pgmg_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Real-server tests
+        run: pytest tests/test_probe_pg.py
+      - name: Every claim holds
+        run: pgmg evidence --dsn "$PGMG_TEST_DSN" -o measured.json
+      - name: The committed evidence is still what this server measures
+        run: |
+          python - <<PY
+          import json
+          keep = lambda path: [(e["code"] or e["name"], e["measured"]) for e in json.load(open(path))["results"]]
+          assert keep("measured.json") == keep("evidence/pg${{ matrix.postgres }}.json")
+          PY
+
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Passes on safe migrations
+        uses: ./
+        with:
+          path: examples/migrations/safe
+      - name: Fails on risky migrations
+        id: risky
+        continue-on-error: true
+        uses: ./
+        with:
+          path: examples/migrations/risky
+      - name: The risky run must have failed
+        env:
+          OUTCOME: ${{ steps.risky.outcome }}
+        run: test "$OUTCOME" = failure
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t pgmg .
+      - run: docker run --rm pgmg rules
