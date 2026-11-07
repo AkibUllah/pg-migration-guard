@@ -378,6 +378,20 @@ def test_tables_created_in_an_earlier_file_are_new_in_the_next():
     assert found == []
 
 
+def test_check_validated_in_a_later_file_still_proves_not_null():
+    from migration_guard.checker import check_sources
+
+    found = check_sources(
+        [
+            ("1.sql", "ALTER TABLE t ADD CONSTRAINT nn CHECK (a IS NOT NULL) NOT VALID;"),
+            ("2.sql", "ALTER TABLE t VALIDATE CONSTRAINT nn;"),
+            ("3.sql", "ALTER TABLE t ALTER COLUMN a SET NOT NULL;"),
+        ],
+        Options(),
+    )
+    assert "PMG006" not in [f.code for f in found]
+
+
 def test_session_timeout_does_not_carry_into_the_next_file():
     from migration_guard.checker import check_sources
 

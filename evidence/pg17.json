@@ -1,0 +1,517 @@
+{
+  "tool_version": "0.1.0",
+  "server_version": "17.11",
+  "major": 17,
+  "results": [
+    {
+      "kind": "rule",
+      "code": "PMG001",
+      "name": "add-index-not-concurrent",
+      "sql": "CREATE INDEX demo_note_idx ON demo (note)",
+      "measured": {
+        "lock": "ShareLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": false,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG002",
+      "name": "drop-index-not-concurrent",
+      "sql": "DROP INDEX demo_score_idx",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG003",
+      "name": "concurrent-in-transaction",
+      "sql": "CREATE INDEX CONCURRENTLY demo_note_idx ON demo (note)",
+      "measured": {
+        "lock": null,
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": "25001"
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG004",
+      "name": "foreign-key-validates-now",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_parent_fk FOREIGN KEY (parent_id) REFERENCES parent (id)",
+      "measured": {
+        "lock": "ShareRowExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": false,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG005",
+      "name": "check-validates-now",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_score_ck CHECK (score >= 0)",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG006",
+      "name": "set-not-null-scans",
+      "sql": "ALTER TABLE demo ALTER COLUMN note SET NOT NULL",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG007",
+      "name": "unique-builds-index",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_id_note_uq UNIQUE (id, note)",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG008",
+      "name": "primary-key-builds-index",
+      "sql": "ALTER TABLE parent_nokey ADD PRIMARY KEY (id)",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG009",
+      "name": "add-column-volatile-default",
+      "sql": "ALTER TABLE demo ADD COLUMN token uuid DEFAULT gen_random_uuid()",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG010",
+      "name": "add-column-rewrites",
+      "sql": "ALTER TABLE demo ADD COLUMN seq bigserial",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG011",
+      "name": "add-column-not-null-no-default",
+      "sql": "ALTER TABLE demo ADD COLUMN region text NOT NULL",
+      "measured": {
+        "lock": null,
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": "23502"
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG012",
+      "name": "alter-type-rewrites",
+      "sql": "ALTER TABLE demo ALTER COLUMN score TYPE bigint",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG013",
+      "name": "full-table-rebuild",
+      "sql": "CLUSTER demo USING demo_pkey",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG014",
+      "name": "truncate",
+      "sql": "TRUNCATE demo CASCADE",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG015",
+      "name": "reindex-not-concurrent",
+      "sql": "REINDEX INDEX demo_score_idx",
+      "measured": {
+        "lock": "ShareLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG016",
+      "name": "refresh-matview-not-concurrent",
+      "sql": "REFRESH MATERIALIZED VIEW demo_mv",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": true,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": false,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG017",
+      "name": "detach-partition-not-concurrent",
+      "sql": "ALTER TABLE events DETACH PARTITION events_2025",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG020",
+      "name": "validate-in-same-transaction",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_score_ck CHECK (score >= 0) NOT VALID;\nALTER TABLE demo VALIDATE CONSTRAINT demo_score_ck",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG022",
+      "name": "enum-value-in-transaction",
+      "sql": "ALTER TYPE demo_status ADD VALUE 'held';\nSELECT 'held'::demo_status",
+      "measured": {
+        "lock": null,
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": "55P04"
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG030",
+      "name": "drop-column",
+      "sql": "ALTER TABLE demo DROP COLUMN note",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG031",
+      "name": "rename-column",
+      "sql": "ALTER TABLE demo RENAME COLUMN note TO remark",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG032",
+      "name": "rename-table",
+      "sql": "ALTER TABLE demo RENAME TO demo_archive",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG033",
+      "name": "drop-table",
+      "sql": "DROP TABLE demo CASCADE",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "rule",
+      "code": "PMG040",
+      "name": "unbounded-data-change",
+      "sql": "UPDATE demo SET score = 0",
+      "measured": {
+        "lock": "RowExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "add-column-constant-default",
+      "sql": "ALTER TABLE demo ADD COLUMN region text DEFAULT 'dhaka'",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "add-column-now-default",
+      "sql": "ALTER TABLE demo ADD COLUMN seen_at timestamptz DEFAULT now()",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "add-foreign-key-not-valid",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_parent_fk FOREIGN KEY (parent_id) REFERENCES parent (id) NOT VALID",
+      "measured": {
+        "lock": "ShareRowExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": false,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "validate-foreign-key",
+      "sql": "ALTER TABLE demo VALIDATE CONSTRAINT demo_parent_fk",
+      "measured": {
+        "lock": "ShareUpdateExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "add-check-not-valid",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_score_ck CHECK (score >= 0) NOT VALID",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "validate-check",
+      "sql": "ALTER TABLE demo VALIDATE CONSTRAINT demo_score_ck",
+      "measured": {
+        "lock": "ShareUpdateExclusiveLock",
+        "rewrites": false,
+        "scans": true,
+        "blocks_reads": false,
+        "blocks_writes": false,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "set-not-null-after-validated-check",
+      "sql": "ALTER TABLE demo ALTER COLUMN score SET NOT NULL",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "unique-using-existing-index",
+      "sql": "ALTER TABLE demo ADD CONSTRAINT demo_score_uq UNIQUE USING INDEX demo_score_uq_idx",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "widen-varchar",
+      "sql": "ALTER TABLE demo ALTER COLUMN label TYPE varchar(40)",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    },
+    {
+      "kind": "safe",
+      "code": "",
+      "name": "varchar-to-text",
+      "sql": "ALTER TABLE demo ALTER COLUMN label TYPE text",
+      "measured": {
+        "lock": "AccessExclusiveLock",
+        "rewrites": false,
+        "scans": false,
+        "blocks_reads": true,
+        "blocks_writes": true,
+        "fails_with": null
+      },
+      "mismatches": []
+    }
+  ]
+}

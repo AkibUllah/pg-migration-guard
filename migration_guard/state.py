@@ -114,11 +114,9 @@ class State:
     proven_not_null: set[tuple[str, str]] = field(default_factory=set)
 
     def start_file(self) -> None:
-        """Session and transaction state end with the file. Tables created earlier stay new."""
+        """Session and transaction state end with the file. Facts about the schema carry over."""
         self.in_transaction = self.assume_in_transaction
         self.lock_timeout = self.lock_timeout_local = self.warned_lock_timeout = False
-        self.not_null_checks.clear()
-        self.proven_not_null.clear()
         self._end_transaction()
 
     def is_new(self, table: str) -> bool:
