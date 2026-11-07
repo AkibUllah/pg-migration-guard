@@ -4,14 +4,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from pathlib import Path
 
 from migration_guard import __version__
 from migration_guard.checker import Options, check_sources
 from migration_guard.config import ConfigError, check_version, load_config
+from migration_guard.evidence import collect, mismatches
 from migration_guard.files import SelectionError, changed_since, expand, read_sources
 from migration_guard.model import RULES, Severity
+from migration_guard.probe import ProbeError, probe_sql
+from migration_guard.probe import to_text as probe_text
 from migration_guard.report import FORMATS, to_text
+from migration_guard.source import SourceError
 
 EXIT_OK, EXIT_FINDINGS, EXIT_USAGE = 0, 1, 2
 
@@ -41,6 +47,18 @@ def _parser() -> argparse.ArgumentParser:
 
     explain = commands.add_parser("explain", help="explain one rule")
     explain.add_argument("code")
+
+    probe = commands.add_parser("probe", help="run a migration on a shadow database, roll back")
+    probe.add_argument("file", help="migration file, or - for stdin")
+    probe.add_argument("--dsn", default=os.environ.get("PGMG_DSN"), help="or set PGMG_DSN")
+    probe.add_argument("--setup", help="schema to load first, in a scratch schema that is dropped")
+    probe.add_argument("--allow-any-database", action="store_true")
+    probe.add_argument("--format", choices=["text", "json"], default="text")
+
+    evidence = commands.add_parser("evidence", help="check every rule's claim on a real server")
+    evidence.add_argument("--dsn", default=os.environ.get("PGMG_DSN"), help="or set PGMG_DSN")
+    evidence.add_argument("--allow-any-database", action="store_true")
+    evidence.add_argument("-o", "--output", help="write the report here as JSON")
     return parser
 
 
@@ -129,14 +147,53 @@ def cmd_explain(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-HANDLERS = {"check": cmd_check, "rules": cmd_rules, "explain": cmd_explain}
+def _dsn(args: argparse.Namespace) -> str:
+    if not args.dsn:
+        raise ProbeError("give --dsn or set PGMG_DSN")
+    return args.dsn
+
+
+def cmd_probe(args: argparse.Namespace) -> int:
+    dsn = _dsn(args)
+    text = read_sources([args.file])[0][1]
+    setup = Path(args.setup).read_text(encoding="utf-8") if args.setup else None
+    results = probe_sql(dsn, text, setup=setup, allow_any_database=args.allow_any_database)
+    if args.format == "json":
+        print(json.dumps([r.to_dict() for r in results], indent=2, ensure_ascii=False))
+    else:
+        print(probe_text(results))
+    return EXIT_FINDINGS if any(r.status == "failed" for r in results) else EXIT_OK
+
+
+def cmd_evidence(args: argparse.Namespace) -> int:
+    report = collect(_dsn(args), allow_any_database=args.allow_any_database)
+    if args.output:
+        Path(args.output).write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    problems = mismatches(report)
+    for problem in problems:
+        print(f"mismatch: {problem}", file=sys.stderr)
+    checked = len(report["results"])
+    print(f"PostgreSQL {report['server_version']}: {checked - len(problems)}/{checked} claims hold")
+    return EXIT_FINDINGS if problems else EXIT_OK
+
+
+HANDLERS = {
+    "check": cmd_check,
+    "rules": cmd_rules,
+    "explain": cmd_explain,
+    "probe": cmd_probe,
+    "evidence": cmd_evidence,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
         return HANDLERS[args.command](args)
-    except (ConfigError, SelectionError, OSError, UnicodeDecodeError) as exc:
+    except SourceError as exc:
+        print(f"pgmg: line {exc.line}: {exc.message}", file=sys.stderr)
+        return EXIT_USAGE
+    except (ConfigError, ProbeError, SelectionError, OSError, UnicodeDecodeError) as exc:
         print(f"pgmg: {exc}", file=sys.stderr)
         return EXIT_USAGE
 

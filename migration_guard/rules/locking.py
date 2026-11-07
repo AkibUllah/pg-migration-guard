@@ -384,7 +384,7 @@ def alter_type(stmt, state: State):
     "VACUUM FULL or CLUSTER",
     "Both copy the whole table under ACCESS EXCLUSIVE. Neither belongs in a deploy.",
     "Schedule pg_repack or pg_squeeze, or a maintenance window, outside the migration.",
-    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True),
+    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True, scans=True),
     Demo("CLUSTER demo USING demo_pkey"),
 )
 def full_rebuild(stmt, state: State):
@@ -403,7 +403,8 @@ def full_rebuild(stmt, state: State):
     "TRUNCATE",
     "Removes every row and takes ACCESS EXCLUSIVE. Unlike DELETE it also fires no row triggers.",
     "If the data really is disposable, say why in a pgmg:ignore comment.",
-    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True),
+    # Rebuilding the indexes reads the new, empty heap, which the scan counter also counts.
+    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True, scans=None),
     Demo("TRUNCATE demo CASCADE"),
 )
 def truncate(stmt, state: State):
@@ -445,7 +446,7 @@ def reindex(stmt, state: State):
     "Replaces the view's contents under ACCESS EXCLUSIVE, so nothing can read it during the "
     "refresh.",
     "Add a unique index on the view and use REFRESH MATERIALIZED VIEW CONCURRENTLY.",
-    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True, scans=False),
+    Claim(lock=ACCESS_EXCLUSIVE, rewrites=True, writes_blocked=False),
     Demo("REFRESH MATERIALIZED VIEW demo_mv", "demo_mv"),
 )
 def refresh_matview(stmt, state: State):

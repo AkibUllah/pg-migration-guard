@@ -31,15 +31,17 @@ class Claim:
     """What a rule says the server does. `pgmg evidence` checks each field on a real server.
 
     `lock` is the strongest mode taken on the demo's target table. `fails_with` is a SQLSTATE,
-    for rules about statements that do not run at all. `reads_blocked` overrides the value that
-    follows from the lock mode, for the cases where an index lock blocks readers on its own.
+    for rules about statements that do not run at all. `scans=None` means the rule says nothing
+    about scanning. `reads_blocked` and `writes_blocked` override what follows from the lock mode:
+    an index lock can block readers on its own, and a materialized view takes no writes.
     """
 
     lock: str | None = None
     rewrites: bool = False
-    scans: bool = False
+    scans: bool | None = False
     fails_with: str | None = None
     reads_blocked: bool | None = None
+    writes_blocked: bool | None = None
 
     @property
     def blocks_reads(self) -> bool:
@@ -49,6 +51,8 @@ class Claim:
 
     @property
     def blocks_writes(self) -> bool:
+        if self.writes_blocked is not None:
+            return self.writes_blocked
         return self.lock in BLOCKS_WRITES
 
 

@@ -16,7 +16,7 @@ from migration_guard.state import State, name_of
     "Touches every row in one transaction: row locks on the whole table, a burst of WAL for "
     "replicas to replay, and dead tuples for vacuum to clean up.",
     "Backfill in batches of a few thousand rows, each in its own transaction.",
-    Claim(lock="RowExclusiveLock"),
+    Claim(lock="RowExclusiveLock", scans=True),
     Demo("UPDATE demo SET score = 0"),
 )
 def unbounded(stmt, state: State):

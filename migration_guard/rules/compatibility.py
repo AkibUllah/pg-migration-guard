@@ -61,7 +61,7 @@ def rename_column(stmt, state: State):
     "The old name is gone the moment this commits, while the old code is still running.",
     "Rename, and keep a view under the old name until the old code is gone.",
     Claim(lock=ACCESS_EXCLUSIVE),
-    Demo("ALTER TABLE demo RENAME TO demo_archive"),
+    Demo("ALTER TABLE demo RENAME TO demo_archive", "demo_archive"),
 )
 def rename_table(stmt, state: State):
     node = stmt.node
